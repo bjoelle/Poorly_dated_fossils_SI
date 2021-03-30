@@ -1,0 +1,92 @@
+##########################################################################################
+# Joint Fossilized Birth-Death Process prior on the topology and fossil occurrence times #
+##########################################################################################
+
+
+# Define exponential priors on the birth rate and death rate #
+speciation_rate ~ dnExponential(10)
+extinction_rate ~ dnExponential(10)
+
+# Specify a scale move on the speciation_rate parameter #
+# This move will be applied with 3 different tuning values (lambda) to help improve mixing # 
+moves.append(mvScale(speciation_rate, lambda=0.01, weight=1))
+moves.append(mvScale(speciation_rate, lambda=0.1,  weight=1))
+moves.append(mvScale(speciation_rate, lambda=1.0,  weight=1))
+
+# Specify a sliding-window move on the extinction_rate parameter #
+# This move will be applied with 3 different window widths (delta) to help improve mixing # 
+moves.append(mvScale(extinction_rate, lambda=0.01, weight=1))
+moves.append(mvScale(extinction_rate, lambda=0.1,  weight=1))
+moves.append(mvScale(extinction_rate, lambda=1,    weight=1))
+
+# Create deterministic nodes for the diversification and turnover rates so that they can be monitored #
+diversification := speciation_rate - extinction_rate
+turnover := extinction_rate/speciation_rate
+
+# Fix the probability of sampling parameter (rho) to 1, #
+# because all extant bears are represented in this analysis #
+rho <- 0.5
+
+# Assume an exponential prior on the rate of sampling fossils (psi) #
+psi ~ dnExponential(10) 
+
+# Specify a scale move on the psi parameter #
+# This move will be applied with 3 different tuning values (lambda) to help improve mixing # 
+moves.append(mvScale(psi, lambda=0.01, weight=1))
+moves.append(mvScale(psi, lambda=0.1,  weight=1))
+moves.append(mvScale(psi, lambda=1,    weight=1))
+
+maxage = 0
+for(i in 1:taxa.size())
+{
+    if(taxa[i].getMaxAge() > maxage)
+    {
+        maxage = taxa[i].getMaxAge()
+    }
+}
+
+# The FBD is conditioned on a starting time for the process, which is the origin time #
+# Specify a uniform prior on the origin #
+origin_time ~ dnUnif(maxage,maxage*2)
+
+# Specify a sliding-window move on the origin_time parameter #
+# This move will be applied with 3 different window widths (delta) to help improve mixing # 
+moves.append(mvSlide(origin_time, delta=0.01, weight=5.0))
+moves.append(mvSlide(origin_time, delta=0.1,  weight=5.0))
+moves.append(mvSlide(origin_time, delta=1,    weight=5.0))
+
+
+### Define the tree-prior distribution as the fossilized birth-death process ###
+fbd_tree ~ dnFBDP(origin=origin_time, lambda=speciation_rate, mu=extinction_rate, psi=psi, rho=rho, taxa=taxa)
+
+# Specify moves on the tree and node times #
+# These moves update the tree topology 
+moves.append(mvFNPR(fbd_tree, weight=15.0))
+moves.append(mvCollapseExpandFossilBranch(fbd_tree, origin_time, weight=6.0))
+
+# These moves update the node ages #
+# Because we are conditioning on the origin time, we must also sample the root node age #
+moves.append(mvNodeTimeSlideUniform(fbd_tree, weight=40.0))
+moves.append(mvRootTimeSlideUniform(fbd_tree, origin_time, weight=5.0))
+
+fossils = fbd_tree.getFossils()
+for(i in 1:fossils.size())
+{
+    t[i] := tmrca(fbd_tree, clade(fossils[i]))
+
+    a_i = fossils[i].getMinAge()
+    b_i = fossils[i].getMaxAge()
+    if(a_i != b_i)
+    {
+        F[i] ~ dnUniform(t[i] - b_i, t[i] - a_i)
+        F[i].clamp( 0 )
+    } else {
+        F[i] ~ dnPointMass(a_i)
+    }
+}
+
+moves.append( mvFossilTimeSlideUniform(fbd_tree, origin_time, weight=5.0) )
+### Create deterministic nodes to monitor various tree statistics ###
+# Monitor the number of sampled ancestors in the FBD-tree #
+num_samp_anc := fbd_tree.numSampledAncestors();
+

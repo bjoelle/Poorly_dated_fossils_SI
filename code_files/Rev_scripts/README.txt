@@ -1,0 +1,3 @@
+This folder contains the all the Rev scripts used to run RevBayes. The main script files are "mcmc_CEFBDRP_Specimens.Rev" and "mcmc_CEFBDRP_Specimens_relax.Rev" for analyses with a strict clock or a relaxed clock respectively.
+
+In each file "dummyname" needs to be replaced by the dataset name, e.g. "DS_seed_451_prop_0.3_age_0.2_relaxed" and dummyidx need to be replaced by the replicate number, e.g. 12.

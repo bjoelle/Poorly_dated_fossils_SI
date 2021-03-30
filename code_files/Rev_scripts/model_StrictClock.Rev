@@ -1,0 +1,9 @@
+############################################################
+# Uncorrelated exponential model on molecular branch rates #
+############################################################
+
+# The rate along each branch is drawn from an exponential prior
+branch_rates ~ dnExponential(10.0)
+
+# The mean will be operated on by scale moves
+moves.append(mvScale(branch_rates, lambda=0.5, tune=true, weight=3.0))
