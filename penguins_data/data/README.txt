@@ -7,4 +7,4 @@ It is composed of the following files:
 - fossils_lists.RData contains data about the intervals used including the interval bounds and the list of fossils covered by each interval
 
 Credit: 
-Thomas, D. B., A. J. D. Tennyson, R. P. Scofield, T. A. Heath, W. Pett, and D. T. Ksepka. 2020. Ancient crested penguin constrains timing of recruitment into seabird hotspot. Proceedings of the Royal Society B: Biological Sciences 287:20201497.
+	Thomas, D. B., A. J. D. Tennyson, R. P. Scofield, T. A. Heath, W. Pett, and D. T. Ksepka. 2020. Ancient crested penguin constrains timing of recruitment into seabird hotspot. Proceedings of the Royal Society B: Biological Sciences 287:20201497.
