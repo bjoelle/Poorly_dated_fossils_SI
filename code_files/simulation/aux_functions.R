@@ -225,3 +225,41 @@ write.fossil.ages = function(tree, fossils, file) {
   }
   close(zz)
 }
+
+# simulate character sequences - relaxed
+sim.morph.seqs.relaxed = function(tree, nchars, rate, alpha, ncats, prop_nstates, extant_tips = c(), ext_only = 0) {
+  seq = NULL
+  
+  rates = rate(length(tree$edge.length))
+  new.blens = tree$edge.length * rates
+  tree$edge.length = new.blens
+  
+  while(is.null(seq) || ncol(seq) < nchars) {
+    sim_chars = nchars - ifelse(is.null(seq), 0, ncol(seq))
+    cat_rates = rgamma(ncats, alpha, rate = alpha)
+    rates = cat_rates[sample(ncats, sim_chars, replace = T)]
+    
+    # all characters assumed symmetric
+    mats = lapply(rates, function(x) {
+      ns = sample(length(prop_nstates),1, prob = prop_nstates) + 1
+      .make.rate.matrix(x, ns)
+    })
+    seq = cbind(seq, geiger::sim.char(tree, mats, model = "discrete")[,,1])
+    
+    # filter unchanged chars
+    for(l in ncol(seq):1) {
+      if(all(seq[,l] == seq[1,l])) seq = seq[,-l]
+    }
+  }
+  
+  seq = apply(seq, 2, function(x) { x - 1 })
+  
+  # characters only sampled for extant tips
+  if(ext_only > 0) {
+    ext_chars = .sample.prob(1:nchars, ext_only)
+    seq[!row.names(seq) %in% extant_tips, ext_chars] = "?"
+  }
+  
+  seq = apply(seq, 1, function(x) paste0(x, collapse = ""))
+  seq
+}

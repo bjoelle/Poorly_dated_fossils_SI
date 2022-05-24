@@ -1,4 +1,6 @@
-run_simulation = function(save_folder) {
+# simulate main datasets & some additional conditions
+# (smaller dataset, relaxed molecular clock & complex morphological model)
+run_simulation = function(save.folder) {
   library(FossilSim)
   library(phyclust)
   
@@ -6,13 +8,17 @@ run_simulation = function(save_folder) {
   args = list(
     # Output parameters
     ntrees = 100,
-    save_folder = save_folder,
+    save_folder = save.folder,
     seed = 451,
+    
+    # Tip numbers
+    nextant = 25,
+    nfossils = 50,
     
     # Molecular parameters
     mol_length = 4500,
     mol_model = "-mHKY -f 0.35 0.16 0.21 0.28 -t 2.33 -a0.35 -g5",
-
+    
     # Morphological parameters
     morph_length = 120,
     morph_clock_rate = 0.1, # from Farrell et al. 2004
@@ -32,7 +38,7 @@ run_simulation = function(save_folder) {
     undated_min_age = 30,
     undated_max_age = 50 )
   
-  done = rep(F, 21)
+  done = rep(F, 18)
   if(file.exists("tmp.RData")) load("tmp.RData")
   k = 1
   for(und_idx in 1:3) {
@@ -51,10 +57,6 @@ run_simulation = function(save_folder) {
     done[k] = T
     k = k + 1
     save(done, file = "tmp.RData")
-    if(!done[k]) .run.sim(args, und_idx, rge_idx, large = T)
-    done[k] = T
-    k = k + 1
-    save(done, file = "tmp.RData")
     if(!done[k]) .run.sim(args, und_idx, rge_idx, relaxed = T)
     done[k] = T
     k = k + 1
@@ -62,19 +64,18 @@ run_simulation = function(save_folder) {
   }
 }
 
-.run.sim = function(args, und_idx, rge_idx, subsample = F, morph_discrep = F, large = F, relaxed = F) {
+.run.sim = function(args, und_idx, rge_idx, subsample = F, morph_discrep = F, relaxed = F) {
   set.seed(args$seed)
   full_args = c(args, .dependent_args(und_idx, rge_idx, subsample = subsample, morph_discrep = morph_discrep,
-                                      large = large, relaxed = relaxed))
+                                      relaxed = relaxed))
   .core_loop(full_args, subsample = subsample, morph_discrep = morph_discrep, relaxed = relaxed)
 }
 
 ### Arguments dependent on simulation setup
-.dependent_args = function(und_prop_idx, age_mult_idx, subsample = F, morph_discrep = F, large = F, relaxed = F) {
+.dependent_args = function(und_prop_idx, age_mult_idx, subsample = F, morph_discrep = F, relaxed = F) {
   
   add = if(subsample) "_ss" else ""
   if(morph_discrep) add = paste0(add, "_mrphdisc")
-  if(large) add = paste0(add, "_large")
   if(relaxed) add = paste0(add, "_relaxed")
   
   # Deposit parameters - 1 = precise-date, 2 = imprecise-date
@@ -91,10 +92,6 @@ run_simulation = function(save_folder) {
     # Morphological model
     unkn_dated_prop = if(morph_discrep) 0.05 else 0,
     unkn_dated_nchars = if(morph_discrep) 0.1 else 1,
-    
-    # Tip numbers
-    nextant = if(!large) 25 else 50,
-    nfossils = if(!large) 50 else 100,
     
     prop_undated = undated_proportions[und_prop_idx],
     rate1to2 = rate1to2[und_prop_idx],
@@ -152,7 +149,7 @@ run_simulation = function(save_folder) {
         next
       }
       
-      fossils[[i]] = sim.fossils.intervals(tree = trees[[i]],interval.ages = c(0,30,50,130),
+      fossils[[i]] = sim.fossils.intervals(tree = trees[[i]], interval.ages = c(0, args$undated_min_age, args$undated_max_age, 130),
                                            rates = c(args$sampl_rate, args$sampl_rate_up, args$sampl_rate))
       # filter on number of fossils
       if(length(fossils[[i]]$edge) < args$nfossils*0.9 || 
@@ -200,7 +197,9 @@ run_simulation = function(save_folder) {
     fossils[[i]]$hmin[-undated] = intervals$min
     
     # simulating sequences on the trees
-    ftree = SAtree.from.fossils(trees[[i]],fossils[[i]])
+    tmp = SAtree.from.fossils(trees[[i]],fossils[[i]])
+    ftree = tmp$tree
+    fossils[[i]] = tmp$fossils
     tree = sampled.tree.from.combined(ftree, rho = args$rho)
     samp_trees[[i]] = tree
     
