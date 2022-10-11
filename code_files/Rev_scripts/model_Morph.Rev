@@ -5,7 +5,6 @@
 #Set up Gamma-distributed rate variation.
 alpha_morpho ~ dnExponential( 1.0 )
 rates_morpho := fnDiscretizeGamma( alpha_morpho, alpha_morpho, 4 )
-alpha_morpho.setValue(0.55)
 
 #Moves on the parameters to the Gamma distribution.
 moves.append(mvScale(alpha_morpho, lambda=0.01, weight=5.0))
@@ -13,8 +12,7 @@ moves.append(mvScale(alpha_morpho, lambda=0.1,  weight=3.0))
 moves.append(mvScale(alpha_morpho, lambda=1,    weight=1.0))
 
 # We assume a strict morphological clock rate, drawn from an exponential prior #
-clock_morpho ~ dnExponential(2.0)
-clock_moroho.setValue(0.1)
+clock_morpho ~ dnExponential(10.0)
 
 moves.append(mvScale(clock_morpho, lambda=0.01, weight=4.0))
 moves.append(mvScale(clock_morpho, lambda=0.1,  weight=4.0))

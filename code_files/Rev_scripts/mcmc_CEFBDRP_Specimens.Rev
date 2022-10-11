@@ -11,22 +11,22 @@
 #######################
 # Reading in the Data #
 #######################
-i = dummyidx
+index = dummyidx
 filename = "dummyname"
 
 printSeed()
 setOption("collapseSampledAncestors", "false")
 
 # Create the full list of taxa (including all fossils and extant species #
-taxa <- readTaxonData("Datasets/"+filename+"/"+filename+"_fossil_ages_"+i+".txt")
+taxa <- readTaxonData("Datasets/"+filename+"/"+filename+"_fossil_ages_"+index+".txt")
 
 # Import the molecular sequences #
 # this file contains only the taxa for which sequence data are available #
-cytb <- readDiscreteCharacterData("Datasets/"+filename+"/"+filename+"_mol_"+i+".nex")
+cytb <- readDiscreteCharacterData("Datasets/"+filename+"/"+filename+"_mol_"+index+".nex")
 
 # Import the morphological character matrix #
 # this file contains only the taxa for which morphological characters are available #
-morpho <- readDiscreteCharacterData("Datasets/"+filename+"/"+filename+"_morph_"+i+".nex")
+morpho <- readDiscreteCharacterData("Datasets/"+filename+"/"+filename+"_morph_"+index+".nex")
 
 # Add the missing taxa to each data partition #
 cytb.addMissingTaxa( taxa )
@@ -39,15 +39,13 @@ moves = VectorMoves()
 
 # Load the model files
 
-source("model_FBDPsuff1.Rev") # FBD tree prior
+source("model_FBDP.Rev") # FBD tree prior
 
-#source("model_UExp.Rev") # UExp relaxed clock
 source("model_StrictClock.Rev") # Strict clock
 
-#source("model_GTRG.Rev") # Molecular substitution model (GTR+G)
 source("model_HKYG.Rev") # Molecular substitution model (HKY+G)
 
-source("model_Morphsuff2.Rev") # Morphological character change model
+source("model_Morph.Rev") # Morphological character change model
 
 
 ########
@@ -61,20 +59,20 @@ monitors = VectorMonitors()
 
 # Create a vector of monitors #
 # 1. for the full model #
-monitors.append(mnModel(filename="output/"+filename+"/"+filename+"_"+i+".log", printgen=2000, exclude = ["F"]))
+monitors.append(mnModel(filename="output/"+filename+"/"+filename+"_"+index+".log", printgen=2000, exclude = ["F"]))
 
 # 2. the tree #
-monitors.append(mnNexus(filename="output/"+filename+"/"+filename+"_"+i+".trees", printgen=2000, fbd_tree))
+monitors.append(mnNexus(filename="output/"+filename+"/"+filename+"_"+index+".trees", printgen=2000, fbd_tree))
 
 # 3. and a few select parameters to be printed to the screen #
 monitors.append(mnScreen(printgen=2000, num_samp_anc, origin_time))
 
 # Initialize the MCMC object #
 mymcmc = mcmc(mymodel, monitors, moves, nruns=2, moveschedule="single")
-#Takeout mymcmc.initializeFromCheckpoint("output/"+filename+"/"+filename+"_"+i+".state")
+#Takeout mymcmc.initializeFromCheckpoint("output/"+filename+"/"+filename+"_"+index+".state")
 
 # Run the MCMC #
-mymcmc.run(generations=50000000, checkpointInterval=1000, checkpointFile="output/"+filename+"/"+filename+"_"+i+".state", tuningInterval = 5000000)
+mymcmc.run(generations=50000000, checkpointInterval=1000, checkpointFile="output/"+filename+"/"+filename+"_"+index+".state", tuningInterval = 5000000)
 
 # Quit RevBayes #
 q()

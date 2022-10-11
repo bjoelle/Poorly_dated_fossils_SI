@@ -133,7 +133,7 @@ plot_example_ridges = function(trees_file, dataset_dir, plotfile = NULL, seed = 
     geom_density_ridges(data = df[df$type == "estimated",], alpha = 0.5, scale = 0.8) +
     geom_segment(data = dftrue, aes(x = true, xend = true+0.1, y = as.numeric(taxa), yend = as.numeric(taxa) + 0.6), color = "red") +
     scale_color_manual(values = c("#56B4E9", "#CC79A7")) + scale_fill_manual(values = c("#56B4E9", "#CC79A7")) +
-    scale_x_continuous(expand = c(0, 0)) + scale_y_discrete(expand = expansion(mult = c(0.01, .1))) + 
+    scale_x_reverse(expand = c(0, 0)) + scale_y_discrete(expand = expansion(mult = c(0.01, .1))) + 
     theme(axis.text.y = element_text(vjust = 0, face = "italic"), legend.title = element_blank(),
           axis.title = element_text(size = 16), axis.text = element_text(size = 14), legend.text = element_text(size = 12)) +
     ggtitle(paste0("Estimated and simulated ages,\n", nf)) + 
@@ -141,4 +141,48 @@ plot_example_ridges = function(trees_file, dataset_dir, plotfile = NULL, seed = 
   
   if(is.null(plotfile)) show(pl)
   else ggsave(paste0(plotfile), height = 7, width = 9)
+}
+
+# prior plots for penguins dataset
+penguins_prior_plot = function(taxafolder, plotfolder) {
+  library(ggplot2)
+  library(ggridges)
+  
+  n = 3
+  prop = c(0.5, 1)
+  
+  for(i in 1:n)  {
+    for(p in prop) {
+      age_table = read.table(file.path(taxafolder, paste0("taxa_", i, "_", p, ".tsv")), header = T, stringsAsFactors = F)
+      age_table = age_table[age_table$min > 1e-3, ]
+      
+      max_true = 1.1*max(age_table$max)
+      age_range = seq(0, max_true, 0.05)
+      
+      true_ages = lapply(1:length(age_table$taxon), function(id) {
+        sapply(age_range, function(a) {
+          if(a < age_table$min[id] || a > age_table$max[id]) 0.01 else 1
+        })
+      })
+      names(true_ages) = age_table$taxon
+      
+      df = data.frame()
+      for(ff in 1:length(true_ages)) {
+        df = rbind(df, data.frame(taxa = .taxa.name(names(true_ages)[ff]), age = age_range, height = true_ages[[ff]]))
+      }
+      df$taxa = factor(df$taxa)
+      
+      int = c("small", "large", "extended")[i]
+      nf = paste0(p*100, "% imprecise-date fossils")
+      
+      pl = ggplot(df, aes(x = age, y = taxa)) + geom_density_ridges(stat="identity", alpha = 0.7, scale = 0.6, aes(height = height), color = "#009E73", fill = "#009E73") +
+        scale_x_reverse(expand = c(0, 0)) + scale_y_discrete(expand = expansion(mult = 0.01)) + 
+        theme(axis.text.y = element_text(vjust = 0, face = "italic"), legend.title = element_blank(),
+              axis.title = element_text(size = 16), axis.text = element_text(size = 14), legend.text = element_text(size = 12)) +
+        ggtitle(paste0("Age ranges,\n", int, " interval, ", nf)) + 
+        labs(y = "Fossil species") + theme(plot.title = element_text(size = 18, hjust = 0.5))
+      
+      ggsave(paste0(plotfolder, "/penguins_priors_", i, "_", p, ".pdf"), height = 12, width = 9)
+    }
+  }
 }
